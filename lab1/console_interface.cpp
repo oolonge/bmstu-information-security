@@ -54,16 +54,221 @@ void ConsoleInterface::handle_encrypt_message() {
         return;
     }
     
+    handle_message_input_choice();
+}
+
+void ConsoleInterface::handle_message_input_choice() {
+    while (true) {
+        std::cout << "\nВыберите способ ввода сообщения:\n";
+        std::cout << "1. Прочитать сообщение из файла\n";
+        std::cout << "2. Ввести сообщение с клавиатуры\n";
+        std::cout << "0. Вернуться в главное меню\n";
+        std::cout << "Ваш выбор: ";
+        
+        int choice;
+        if (!get_valid_integer(choice, 0, 2)) {
+            std::cout << "Ошибка: Неверный ввод. Введите число от 0 до 2.\n";
+            std::cout << "Попробуйте снова.\n";
+            continue;
+        }
+        
+        if (choice == 0) {
+            return;
+        }
+        
+        std::string message;
+        bool message_read = false;
+        
+        try {
+            switch (choice) {
+                case 1:
+                    message = read_message_from_file();
+                    message_read = true;
+                    break;
+                case 2:
+                    message = read_message_from_keyboard();
+                    message_read = true;
+                    break;
+            }
+            
+            if (message_read && !message.empty()) {
+                std::string result = machine.encrypt_message(message);
+                std::cout << "\nРезультат: " << result << "\n";
+                handle_output_choice(result);
+            }
+            return;
+            
+        } catch (const std::exception& e) {
+            std::cout << "Ошибка при шифровании: " << e.what() << "\n\n";
+            return;
+        }
+    }
+}
+
+std::string ConsoleInterface::read_message_from_keyboard() {
     std::string message;
     std::cout << "Введите сообщение: ";
     std::getline(std::cin, message);
+    return message;
+}
+
+std::string ConsoleInterface::read_message_from_file() {
+    if (!create_output_directory()) {
+        throw std::runtime_error("Не удалось создать или получить доступ к директории out/");
+    }
+    
+    std::vector<std::string> txt_files = get_txt_files_in_out_directory();
+    
+    if (txt_files.empty()) {
+        throw std::runtime_error("В директории out/ не найдено .txt файлов");
+    }
+    
+    display_available_files(txt_files);
+    
+    std::cout << "Выберите файл (введите номер от 1 до " << txt_files.size() << "): ";
+    int file_choice;
+    
+    if (!get_valid_integer(file_choice, 1, static_cast<int>(txt_files.size()))) {
+        throw std::runtime_error("Неверный выбор файла");
+    }
+    
+    std::string selected_file = txt_files[file_choice - 1];
+    std::string filepath = "out/" + selected_file;
+    
+    std::ifstream file(filepath);
+    if (!file.is_open()) {
+        throw std::runtime_error("Не удалось открыть файл: " + filepath);
+    }
+    
+    std::string message;
+    std::string line;
+    
+    while (std::getline(file, line)) {
+        message += line;
+        if (!file.eof()) {
+            message += "\n";
+        }
+    }
+    
+    file.close();
+    
+    if (message.empty()) {
+        throw std::runtime_error("Файл пуст или не содержит читаемого текста");
+    }
+    
+    std::cout << "Сообщение успешно прочитано из файла " << selected_file 
+              << " (" << message.length() << " символов)\n";
+    return message;
+}
+
+void ConsoleInterface::handle_output_choice(const std::string& encrypted_message) {
+    while (true) {
+        std::cout << "\nВыберите действие:\n";
+        std::cout << "1. Записать результат в файл\n";
+        std::cout << "2. Выйти в меню\n";
+        std::cout << "Ваш выбор: ";
+        
+        int choice;
+        if (!get_valid_integer(choice, 1, 2)) {
+            std::cout << "Ошибка: Неверный ввод. Введите число от 1 до 2.\n";
+            std::cout << "Попробуйте снова.\n";
+            continue;
+        }
+        
+        switch (choice) {
+            case 1:
+                try {
+                    write_message_to_file(encrypted_message);
+                } catch (const std::exception& e) {
+                    std::cout << "Ошибка при записи в файл: " << e.what() << "\n";
+                }
+                return;
+            case 2:
+                return;
+        }
+    }
+}
+
+void ConsoleInterface::write_message_to_file(const std::string& message) {
+    if (!create_output_directory()) {
+        throw std::runtime_error("Не удалось создать директорию out/");
+    }
+    
+    std::string filename;
+    std::cout << "Введите название файла (без расширения): ";
+    std::getline(std::cin, filename);
+    
+    if (filename.empty()) {
+        throw std::runtime_error("Имя файла не может быть пустым");
+    }
+    
+    // Очистка имени файла от недопустимых символов
+    std::string cleaned_filename;
+    for (char c : filename) {
+        if (std::isalnum(c) || c == '_' || c == '-') {
+            cleaned_filename += c;
+        } else if (c == ' ') {
+            cleaned_filename += '_';
+        }
+    }
+    
+    if (cleaned_filename.empty()) {
+        cleaned_filename = "encrypted_message";
+    }
+    
+    std::string filepath = "out/" + cleaned_filename + ".txt";
+    
+    std::ofstream file(filepath);
+    if (!file.is_open()) {
+        throw std::runtime_error("Не удалось создать файл: " + filepath);
+    }
+    
+    file << message;
+    file.close();
+    
+    std::cout << "Результат успешно записан в файл: " << filepath << "\n\n";
+}
+
+bool ConsoleInterface::create_output_directory() {
+    try {
+        std::filesystem::create_directories("out");
+        return true;
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
+std::vector<std::string> ConsoleInterface::get_txt_files_in_out_directory() {
+    std::vector<std::string> txt_files;
     
     try {
-        std::string result = machine.encrypt_message(message);
-        std::cout << "Результат: " << result << "\n\n";
-    } catch (const std::exception& e) {
-        std::cout << "Ошибка при шифровании: " << e.what() << "\n\n";
+        if (!std::filesystem::exists("out/")) {
+            return txt_files; // Возвращаем пустой вектор, если директория не существует
+        }
+        
+        for (const auto& entry : std::filesystem::directory_iterator("out/")) {
+            if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+                txt_files.push_back(entry.path().filename().string());
+            }
+        }
+        
+        // Сортируем файлы по имени для стабильного порядка
+        std::sort(txt_files.begin(), txt_files.end());
+        
+    } catch (const std::exception&) {
+        // В случае ошибки возвращаем пустой вектор
+        txt_files.clear();
     }
+    
+    return txt_files;
+}
+
+void ConsoleInterface::display_available_files(const std::vector<std::string>& files) {
+    std::cout << "\nДоступные .txt файлы в директории out/:\n";
+    for (size_t i = 0; i < files.size(); ++i) {
+        std::cout << "  " << (i + 1) << ". " << files[i] << "\n";
+    }
+    std::cout << "\n";
 }
 
 void ConsoleInterface::handle_change_configuration() {

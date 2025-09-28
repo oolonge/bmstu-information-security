@@ -6,7 +6,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 HEADERS = console_interface.h enigma.h exceptions.h
 
 $(TARGET): $(OBJECTS)
-	$(CXX) $(OBJECTS) -o $(TARGET)
+	$(CXX) $(OBJECTS) -o $(TARGET) $(LDFLAGS)
 
 %.o: %.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
