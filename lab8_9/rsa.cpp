@@ -145,8 +145,11 @@ void RSA::sign_file(const std::string& input_path, const std::string& output_pat
     // Вычисление хэша
     uint32_t hash = compute_hash(file_data);
 
+    // Приведение хэша к диапазону модуля (чтобы hash < n)
+    uint64_t hash_mod = hash % n;
+
     // Создание подписи (шифрование хэша приватным ключом)
-    uint64_t signature = mod_pow(hash, d, n);
+    uint64_t signature = mod_pow(hash_mod, d, n);
 
     // Подготовка данных для записи
     std::vector<uint8_t> output_data;
@@ -213,14 +216,14 @@ bool RSA::verify_file(const std::string& signed_path, const std::string& output_
     // Вычисление хэша оригинальных данных
     uint32_t computed_hash = compute_hash(original_data);
 
+    // Приведение хэша к диапазону модуля (чтобы hash < n)
+    uint64_t computed_hash_mod = computed_hash % n;
+
     // Расшифровка подписи публичным ключом
     uint64_t decrypted_hash = mod_pow(signature, e, n);
 
-    // Приведение к uint32_t для сравнения
-    uint32_t decrypted_hash_32 = static_cast<uint32_t>(decrypted_hash);
-
-    // Сравнение хэшей
-    bool is_valid = (computed_hash == decrypted_hash_32);
+    // Сравнение хэшей (после модуля)
+    bool is_valid = (computed_hash_mod == decrypted_hash);
 
     if (is_valid) {
         // Сохранение оригинального файла
@@ -229,16 +232,16 @@ bool RSA::verify_file(const std::string& signed_path, const std::string& output_
         std::cout << "Подпись ВЕРНА.\n";
         std::cout << "Вычисленный хэш: 0x" << std::hex << std::setw(8) << std::setfill('0')
                   << computed_hash << std::dec << "\n";
-        std::cout << "Хэш из подписи:  0x" << std::hex << std::setw(8) << std::setfill('0')
-                  << decrypted_hash_32 << std::dec << "\n";
+        std::cout << "Хэш из подписи:  0x" << std::hex << std::setw(16) << std::setfill('0')
+                  << decrypted_hash << std::dec << "\n";
         std::cout << "Оригинальный файл восстановлен: " << output_path << "\n";
         std::cout << "Размер файла: " << original_data.size() << " байт\n\n";
     } else {
         std::cout << "Подпись НЕВЕРНА!\n";
         std::cout << "Вычисленный хэш: 0x" << std::hex << std::setw(8) << std::setfill('0')
                   << computed_hash << std::dec << "\n";
-        std::cout << "Хэш из подписи:  0x" << std::hex << std::setw(8) << std::setfill('0')
-                  << decrypted_hash_32 << std::dec << "\n";
+        std::cout << "Хэш из подписи:  0x" << std::hex << std::setw(16) << std::setfill('0')
+                  << decrypted_hash << std::dec << "\n";
         std::cout << "ВНИМАНИЕ: Файл был изменен или подпись повреждена!\n\n";
     }
 
