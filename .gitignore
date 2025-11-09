@@ -1,0 +1,28 @@
+# Compiled object files
+*.o
+
+# Executables
+rsa_signature
+des_cipher
+aes_cipher
+rsa_cipher
+
+# Output directories
+*/out/
+
+# macOS files
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+
+# Build artifacts
+*.a
+*.so
+*.dylib
+
+# Temporary files
+*~
+*.swp
+*.swo
