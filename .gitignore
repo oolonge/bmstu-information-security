@@ -1,28 +1,27 @@
-# Compiled object files
-*.o
 
-# Executables
-rsa_signature
-des_cipher
-aes_cipher
-rsa_cipher
-
-# Output directories
-*/out/
-
-# macOS files
 .DS_Store
-
-# IDE files
-.vscode/
 .idea/
-
-# Build artifacts
+.vscode/
 *.a
-*.so
 *.dylib
-
-# Temporary files
-*~
-*.swp
+*.o
+*.so
 *.swo
+*.swp
+*.zip
+*/out/
+*~
+# Build artifacts
+# Compiled object files
+# Executables
+# IDE files
+# macOS files
+# Output directories
+# Temporary files
+aes_cipher
+des_cipher
+latex-bmstu-struct-reference/
+out/
+reference_final_lab_1/
+rsa_cipher
+rsa_signature
